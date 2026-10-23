@@ -1,6 +1,7 @@
 // Vercel serverless function: POST /api/chat
 // Chef Carlo: a cooking chatbot. The temperature bar sets his MOOD (and the real model
 // temperature); he only ever talks about cuisines, dishes and recipes.
+// Replies come back as JSON so the page can draw recipe cards.
 // Your API key stays here on the server and is never sent to the browser.
 // Works with an OpenAI key (OPENAI_API_KEY) or a Claude key (ANTHROPIC_API_KEY).
 
@@ -11,6 +12,14 @@ const CUISINES = [
   "italian", "french", "spanish", "greek", "austrian", "eastern-european", "middle-eastern",
   "thai", "indian", "chinese", "japanese", "korean", "mexican", "american",
 ];
+
+const DIETS = {
+  vegetarian: "vegetarian (no meat, no fish, no seafood)",
+  vegan: "vegan (no animal products at all: no meat, fish, eggs, dairy or honey)",
+  "gluten-free": "gluten-free (no wheat, barley, rye or regular pasta/bread/soy sauce; suggest gluten-free swaps)",
+  "no-pork": "no pork (no pork, bacon, guanciale, pancetta, ham or lard)",
+  "dairy-free": "dairy-free (no milk, butter, cream or cheese)",
+};
 
 // Used only if the model forgets to name the cuisine itself.
 const KEYWORDS = {
@@ -35,11 +44,17 @@ You ONLY talk about food: cuisines, dishes, recipes, ingredients, cooking techni
 If the visitor asks about anything else, refuse in character and steer straight back to food (for example, suggest a dish that fits their question).
 Your mood is set by the visitor. Let it change HOW you answer, never WHAT is true: recipes must always be correct and cookable.
 Never mention temperatures of the room, the weather, thermometers, sliders or your "mood setting"; just BE in that mood.
-Recipes: a short intro line, then "Ingredients:" as a dash list with quantities, then "Steps:" as a numbered list.
-Plain text only: no markdown symbols like ** or #.
-Keep answers under 180 words unless the visitor asks for more detail.
-Finish EVERY reply with one final line in exactly this form: CUISINE: <id>
-where <id> is the cuisine your reply is mainly about, chosen from: ${CUISINES.join(", ")}, or none.`;
+
+Always answer with ONE JSON object and nothing else, in exactly this shape:
+{"message": string, "recipe": null or {"title": string, "servings": number, "time": string, "difficulty": "easy" | "medium" | "hard", "ingredients": [{"qty": number or null, "unit": string, "item": string}], "steps": [string]}, "cuisine": string}
+
+Rules for the fields:
+- "message": what you say, fully in your current mood. Plain text, no markdown. Under 120 words.
+  If you give a recipe, keep "message" to 1-3 sentences of commentary and do NOT repeat the recipe in it.
+- "recipe": include it whenever you give a cookable recipe, otherwise null.
+  "qty" is a plain number for the given servings (null for "to taste"); "unit" is short, like g, ml, tbsp, tsp, cloves, pieces, or "".
+  Write the "steps" in your current mood, but keep them accurate. 3 to 10 steps. Default to 2 servings.
+- "cuisine": the cuisine your reply is mainly about, one of: ${CUISINES.join(", ")}, or "none".`;
 
 const MOODS = [
   {
@@ -76,6 +91,7 @@ When the visitor hasn't chosen a dish, invent an outrageous but delicious fusion
 
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const moodFor = (c) => MOODS.find((m) => c <= m.max);
+const str = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 // Clean up what the browser sent: right roles, strings only, sensible length,
 // starts and ends with a user turn, no two turns in a row from the same role.
@@ -83,7 +99,7 @@ function cleanMessages(raw) {
   if (!Array.isArray(raw)) return [];
   const msgs = raw
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 2000).trim() }))
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 2500).trim() }))
     .filter((m) => m.content.length > 0)
     .slice(-16);
   const merged = [];
@@ -97,28 +113,63 @@ function cleanMessages(raw) {
   return merged;
 }
 
-// Pull the "CUISINE: x" line off the end of the reply (or guess from keywords).
-function splitCuisine(text, lastUserText) {
-  let cuisine = null;
-  const reply = text
-    .replace(/\n?[ \t]*\**CUISINE:\s*\**\s*([a-z-]+)\**[ \t]*\.?\s*$/i, (_, id) => {
-      cuisine = id.toLowerCase();
-      return "";
+function guessCuisine(text) {
+  const hay = " " + text.toLowerCase() + " ";
+  return Object.keys(KEYWORDS).find((id) => KEYWORDS[id].some((k) => hay.includes(k))) || "none";
+}
+
+// Keep only well-formed recipe data, so a sloppy reply can't break the page.
+function cleanRecipe(r) {
+  if (!r || typeof r !== "object") return null;
+  const ingredients = (Array.isArray(r.ingredients) ? r.ingredients : [])
+    .slice(0, 30)
+    .map((i) => {
+      if (typeof i === "string") return { qty: null, unit: "", item: str(i, 100) };
+      const qty = Number(i && i.qty);
+      return { qty: Number.isFinite(qty) && qty > 0 ? qty : null, unit: str(i && i.unit, 15), item: str(i && i.item, 100) };
     })
-    .trim();
-  if (cuisine && !CUISINES.includes(cuisine)) cuisine = cuisine === "none" ? "none" : null;
-  if (!cuisine) {
-    const hay = (reply + " " + lastUserText).toLowerCase();
-    cuisine = Object.keys(KEYWORDS).find((id) => KEYWORDS[id].some((k) => hay.includes(k))) || "none";
+    .filter((i) => i.item);
+  const steps = (Array.isArray(r.steps) ? r.steps : []).map((s) => str(s, 500)).filter(Boolean).slice(0, 15);
+  const title = str(r.title, 100);
+  if (!title || ingredients.length === 0 || steps.length === 0) return null;
+  const servings = Math.round(Number(r.servings));
+  return {
+    title,
+    servings: Number.isFinite(servings) ? clamp(servings, 1, 20) : 2,
+    time: str(r.time, 30),
+    difficulty: ["easy", "medium", "hard"].includes(r.difficulty) ? r.difficulty : "",
+    ingredients,
+    steps,
+  };
+}
+
+// Turn the AI's answer into { reply, recipe, cuisine }, even if it didn't send clean JSON.
+function parseAnswer(text, lastUserText) {
+  let data = null;
+  const raw = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  try { data = JSON.parse(raw); } catch {
+    const a = raw.indexOf("{"), b = raw.lastIndexOf("}");
+    if (a !== -1 && b > a) { try { data = JSON.parse(raw.slice(a, b + 1)); } catch {} }
   }
-  return { reply, cuisine };
+  if (!data || typeof data !== "object") {
+    // Plain text came back: show it as Carlo's message.
+    const reply = raw.replace(/\n?\s*CUISINE:\s*[a-z-]+\s*$/i, "").trim();
+    return { reply, recipe: null, cuisine: guessCuisine(reply + " " + lastUserText) };
+  }
+  const recipe = cleanRecipe(data.recipe);
+  let cuisine = str(data.cuisine, 30).toLowerCase();
+  if (!CUISINES.includes(cuisine)) {
+    cuisine = guessCuisine([str(data.message, 2000), recipe ? recipe.title : "", lastUserText].join(" "));
+  }
+  return { reply: str(data.message, 2000), recipe, cuisine };
 }
 
 // ---------- OpenAI (ChatGPT) ----------
 // The temperature bar controls the REAL model temperature: 0 at the coldest, 1.3 at the hottest.
 async function askOpenAI({ system, messages, chaos }) {
-  const send = (withTemperature) =>
-    fetch("https://api.openai.com/v1/chat/completions", {
+  const opts = { temperature: true, json: true };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -127,21 +178,22 @@ async function askOpenAI({ system, messages, chaos }) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
         messages: [{ role: "system", content: system }, ...messages],
-        max_completion_tokens: 700,
-        ...(withTemperature ? { temperature: Math.round(chaos * 1.3 * 100) / 100 } : {}),
+        max_completion_tokens: 1400,
+        ...(opts.temperature ? { temperature: Math.round(chaos * 1.3 * 100) / 100 } : {}),
+        ...(opts.json ? { response_format: { type: "json_object" } } : {}),
       }),
     });
-
-  let r = await send(true);
-  let detail = r.ok ? "" : await r.text();
-  // Some newer models refuse a custom temperature. Then retry without it.
-  if (r.status === 400 && /temperature/i.test(detail)) {
-    r = await send(false);
-    detail = r.ok ? "" : await r.text();
+    if (r.ok) {
+      const data = await r.json();
+      return { text: data.choices?.[0]?.message?.content?.trim() || "" };
+    }
+    const detail = await r.text();
+    // Some models refuse a custom temperature or JSON mode. Drop that setting and try again.
+    if (r.status === 400 && opts.temperature && /temperature/i.test(detail)) { opts.temperature = false; continue; }
+    if (r.status === 400 && opts.json && /response_format|json/i.test(detail)) { opts.json = false; continue; }
+    return { status: r.status, detail };
   }
-  if (!r.ok) return { status: r.status, detail };
-  const data = await r.json();
-  return { text: data.choices?.[0]?.message?.content?.trim() || "" };
+  return { status: 400, detail: "The model refused the request settings." };
 }
 
 // ---------- Claude (Anthropic) ----------
@@ -156,7 +208,7 @@ async function askClaude({ system, messages }) {
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-haiku-5-5",
-      max_tokens: 2000,
+      max_tokens: 3000,
       system,
       messages,
       output_config: { effort: "low" },
@@ -183,11 +235,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Send a POST request to talk to Chef Carlo." });
   }
 
-  const { messages: rawMessages, celsius: rawCelsius } = req.body || {};
+  const { messages: rawMessages, celsius: rawCelsius, diet: rawDiet } = req.body || {};
   const n = Number(rawCelsius);
   const celsius = clamp(Math.round(Number.isFinite(n) ? n : 18), MIN_C, MAX_C);
   const mood = moodFor(celsius);
   const chaos = Math.round(((celsius - MIN_C) / (MAX_C - MIN_C)) * 100) / 100; // 0.00 – 1.00
+  const diet = (Array.isArray(rawDiet) ? rawDiet : []).filter((d) => d in DIETS);
 
   const messages = cleanMessages(rawMessages);
   if (messages.length === 0) return res.status(400).json({ error: "Type a message first." });
@@ -197,11 +250,14 @@ export default async function handler(req, res) {
   const useClaude = !useOpenAI && Boolean(process.env.ANTHROPIC_API_KEY);
   // No key at all? The browser uses Carlo's built-in offline lines.
   if (!useOpenAI && !useClaude) {
-    const { cuisine } = splitCuisine("", lastUserText);
-    return res.status(200).json({ offline: true, mood: mood.id, cuisine });
+    return res.status(200).json({ offline: true, mood: mood.id, cuisine: guessCuisine(lastUserText) });
   }
 
-  const system = `${BASE_PROMPT}
+  const dietRule = diet.length
+    ? `\n\nThe visitor's dietary rules. Follow them in EVERY answer and recipe, no exceptions: ${diet.map((d) => DIETS[d]).join("; ")}.
+React to these rules in your current mood when it fits, but never break them.`
+    : "";
+  const system = `${BASE_PROMPT}${dietRule}
 
 ${mood.prompt}`;
 
@@ -214,9 +270,10 @@ ${mood.prompt}`;
       console.error("AI API error", result.status, result.detail);
       return res.status(502).json({ error: errorHint(result.status, result.detail) });
     }
-    const { reply, cuisine } = splitCuisine(result.text, lastUserText);
+    const { reply, recipe, cuisine } = parseAnswer(result.text, lastUserText);
     return res.status(200).json({
-      reply: reply || "…(Carlo stares at the stove in silence.)",
+      reply: reply || (recipe ? "Here. Cook it properly." : "…(Carlo stares at the stove in silence.)"),
+      recipe,
       cuisine,
       mood: mood.id,
       temperature: useOpenAI ? Math.round(chaos * 1.3 * 100) / 100 : null,
