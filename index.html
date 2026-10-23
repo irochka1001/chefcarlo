@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chef Carlo</title>
+  <meta name="description" content="Chef Carlo, a cooking chatbot whose mood you control with the temperature bar." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👨‍🍳</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lilita+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-mood="happy">
+  <div class="app">
+    <aside class="kitchen" aria-label="Chef Carlo">
+      <h1 class="wordmark">Chef Carlo</h1>
+
+      <figure class="portrait">
+        <svg class="chef" viewBox="0 0 200 210" role="img" aria-labelledby="chefLabel">
+          <title id="chefLabel">Chef Carlo</title>
+          <circle class="halo" cx="100" cy="112" r="96" />
+
+          <!-- steam (meltdown) -->
+          <g class="m m-meltdown steam">
+            <path d="M30 60c-6 8 6 12 0 22" /><path d="M170 60c-6 8 6 12 0 22" /><path d="M18 92c-5 6 5 10 0 18" />
+          </g>
+
+          <!-- jacket -->
+          <path class="jacket" d="M34 206c4-40 30-58 66-58s62 18 66 58z" />
+          <path class="scarf" d="M76 150c8 10 40 10 48 0l-6 22c-12 6-24 6-36 0z" />
+          <circle class="button" cx="88" cy="186" r="3.5" /><circle class="button" cx="112" cy="186" r="3.5" />
+
+          <!-- head -->
+          <circle class="skin" cx="100" cy="108" r="42" />
+          <circle class="skin" cx="58" cy="112" r="8" /><circle class="skin" cx="142" cy="112" r="8" />
+
+          <!-- hat (tilts in meltdown) -->
+          <g class="hat">
+            <circle cx="72" cy="42" r="21" /><circle cx="100" cy="32" r="25" /><circle cx="128" cy="42" r="21" />
+            <rect x="64" y="46" width="72" height="24" rx="5" />
+            <rect class="hat-band" x="64" y="62" width="72" height="8" rx="3" />
+            <!-- icicles (frozen) -->
+            <path class="m m-frozen ice" d="M70 70l4 9 4-9zM88 70l3 7 3-7zM108 70l4 10 4-10zM124 70l3 7 3-7z" />
+          </g>
+
+          <!-- cheeks -->
+          <circle class="cheek" cx="76" cy="122" r="8" /><circle class="cheek" cx="124" cy="122" r="8" />
+
+          <!-- eyes and brows per mood -->
+          <g class="m m-frozen face">
+            <path class="line" d="M76 100h14M110 100h14" />
+            <path class="line" d="M74 90h18M108 90h18" />
+          </g>
+          <g class="m m-chilly face">
+            <circle class="eye" cx="83" cy="101" r="4" /><path class="line" d="M108 102h14" />
+            <path class="line" d="M74 92l18 2M106 86l18 6" />
+          </g>
+          <g class="m m-happy face">
+            <path class="line" d="M76 103q7-8 14 0M110 103q7-8 14 0" />
+            <path class="line" d="M74 90q9-5 18 0M108 90q9-5 18 0" />
+          </g>
+          <g class="m m-fired-up face">
+            <circle class="eye" cx="83" cy="100" r="5" /><circle class="eye" cx="117" cy="100" r="5" />
+            <path class="line" d="M73 86q10-8 20-2M107 84q10-6 20 2" />
+          </g>
+          <g class="m m-meltdown face">
+            <circle class="eye-white" cx="83" cy="100" r="8" /><circle class="eye" cx="83" cy="100" r="3.5" />
+            <circle class="eye-white" cx="117" cy="100" r="8" /><circle class="eye" cx="117" cy="100" r="3.5" />
+            <path class="line" d="M72 84l20 8M128 84l-20 8" />
+          </g>
+
+          <!-- nose and moustache -->
+          <path class="nose" d="M100 104q-6 12 0 14q6-2 0-14" />
+          <path class="moustache" d="M100 122c-10-8-24-8-30 2c-3 5 2 9 6 5c6-6 16-2 24 0c8-2 18-6 24 0c4 4 9 0 6-5c-6-10-20-10-30-2z" />
+
+          <!-- mouths -->
+          <path class="m m-frozen line" d="M90 138h20" />
+          <path class="m m-chilly line" d="M88 140q12-5 24 0" />
+          <path class="m m-happy mouth" d="M86 134q14 14 28 0z" />
+          <path class="m m-fired-up mouth" d="M82 132q18 22 36 0z" />
+          <ellipse class="m m-meltdown mouth" cx="100" cy="140" rx="10" ry="12" />
+
+          <!-- extras -->
+          <path class="m m-frozen breath" d="M122 140c8-4 16 0 14 6c6 0 8 8 0 9c-4 5-14 3-14-3c-6-2-6-10 0-12z" />
+          <g class="m m-fired-up m-meltdown sweat">
+            <path d="M146 80q5 9 0 12q-5-3 0-12z" /><path d="M54 76q4 7 0 10q-4-3 0-10z" />
+          </g>
+        </svg>
+
+        <div id="plate" class="plate" aria-hidden="true">🍳</div>
+      </figure>
+
+      <div class="status">
+        <p id="moodName" class="mood-name">Happy Carlo</p>
+        <p id="moodLine" class="mood-line">Warm, patient, loves teaching.</p>
+        <p class="cooking">Now cooking: <strong id="cuisineName">anything you like</strong></p>
+      </div>
+
+      <div class="dial">
+        <div class="dial-head">
+          <label for="temp">Temperature</label>
+          <output id="tempOut" for="temp">18°</output>
+        </div>
+        <input id="temp" type="range" min="-20" max="50" step="1" value="18" aria-describedby="moodName" />
+        <div class="dial-ends" aria-hidden="true"><span>Ice-cold</span><span>On fire</span></div>
+        <p class="model-temp">Model temperature <span id="modelTemp">0.69</span></p>
+      </div>
+    </aside>
+
+    <main class="chat" aria-label="Chat with Chef Carlo">
+      <div id="log" class="log" aria-live="polite">
+        <div id="empty" class="empty">
+          <p class="empty-title">What are we cooking today?</p>
+          <p>Ask Carlo for a recipe from any cuisine. Then move the temperature bar and watch his mood change.</p>
+          <div class="chips">
+            <button type="button" class="chip">What should I cook tonight?</button>
+            <button type="button" class="chip">Give me a real carbonara recipe</button>
+            <button type="button" class="chip">Something Thai and quick</button>
+            <button type="button" class="chip">I have rice, eggs and spinach</button>
+            <button type="button" class="chip">Teach me to make ramen</button>
+          </div>
+        </div>
+      </div>
+
+      <form id="composer" class="composer" autocomplete="off">
+        <label for="input" class="visually-hidden">Your message</label>
+        <textarea id="input" rows="1" maxlength="2000" placeholder="Ask Chef Carlo…" required></textarea>
+        <button id="send" type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
