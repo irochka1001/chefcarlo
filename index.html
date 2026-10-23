@@ -116,6 +116,16 @@
           <p id="headGreet" class="head-greet">Name a cuisine and the kitchen changes with it.</p>
         </div>
       </header>
+
+      <section class="passport" aria-label="Food passport">
+        <p class="passport-head">
+          <span class="passport-title">🛂 Food passport</span>
+          <span id="passportCount" class="passport-count">0 of 14 kitchens</span>
+          <button id="passportReset" class="link-btn" type="button">Reset</button>
+        </p>
+        <ol id="stamps" class="stamps"></ol>
+      </section>
+
       <div id="log" class="log" aria-live="polite">
         <div id="empty" class="empty">
           <p class="empty-title">What are we cooking today?</p>
@@ -125,9 +135,19 @@
             <button type="button" class="chip">Give me a real carbonara recipe</button>
             <button type="button" class="chip">Something Thai and quick</button>
             <button type="button" class="chip">I have rice, eggs and spinach</button>
+            <button type="button" class="chip">A vegan Indian curry</button>
             <button type="button" class="chip">Teach me to make ramen</button>
           </div>
         </div>
+      </div>
+
+      <div class="diets" role="group" aria-label="Dietary rules Carlo must follow">
+        <span class="diets-label">Cook it</span>
+        <button type="button" class="diet" data-diet="vegetarian" aria-pressed="false">🥕 Vegetarian</button>
+        <button type="button" class="diet" data-diet="vegan" aria-pressed="false">🌱 Vegan</button>
+        <button type="button" class="diet" data-diet="gluten-free" aria-pressed="false">🌾 Gluten-free</button>
+        <button type="button" class="diet" data-diet="dairy-free" aria-pressed="false">🥛 Dairy-free</button>
+        <button type="button" class="diet" data-diet="no-pork" aria-pressed="false">🐖 No pork</button>
       </div>
 
       <form id="composer" class="composer" autocomplete="off">

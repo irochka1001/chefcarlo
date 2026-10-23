@@ -99,6 +99,8 @@ let messages = [];
 let busy = false;
 let moodTimer = null;
 let offlineNoticeShown = false;
+let visited = new Set();     // food passport stamps
+let diets = new Set();       // active dietary rules
 
 function moodFor(c) { return MOODS.find((m) => c <= m.max); }
 // Same formula as the server: 0 at the coldest, 1.3 at the hottest.
@@ -169,6 +171,186 @@ function setCuisine(id) {
   }
 }
 
+// ---------- Food passport ----------
+
+const CUISINE_IDS = Object.keys(CUISINES);
+
+function renderPassport(justStamped) {
+  const list = el("stamps");
+  list.replaceChildren();
+  CUISINE_IDS.forEach((id, i) => {
+    const c = CUISINES[id];
+    const li = document.createElement("li");
+    const done = visited.has(id);
+    li.className = "stamp" + (done ? " visited" : "") + (id === justStamped ? " new" : "");
+    li.textContent = c.dish;
+    li.title = done ? `${c.name}: visited` : `${c.name}: not visited yet`;
+    li.setAttribute("aria-label", li.title);
+    li.style.setProperty("--stamp", c.color);
+    li.style.setProperty("--tilt", `${((i * 37) % 17) - 8}deg`);
+    list.appendChild(li);
+  });
+  el("passportCount").textContent = `${visited.size} of ${CUISINE_IDS.length} kitchens`;
+}
+
+function stampPassport(id) {
+  if (!CUISINES[id] || visited.has(id)) return;
+  visited.add(id);
+  try { localStorage.setItem("carlo-passport", JSON.stringify([...visited])); } catch {}
+  renderPassport(id);
+  const c = CUISINES[id];
+  if (visited.size === CUISINE_IDS.length) {
+    addAside(`🎉 All ${CUISINE_IDS.length} kitchens visited! Carlo pops the prosecco: you've cooked your way around the world.`);
+    document.body.classList.add("party");
+    setTimeout(() => document.body.classList.remove("party"), 4000);
+  } else {
+    addAside(`New passport stamp: ${c.name} ${c.dish} (${visited.size} of ${CUISINE_IDS.length})`);
+  }
+}
+
+el("passportReset").addEventListener("click", () => {
+  visited = new Set();
+  try { localStorage.removeItem("carlo-passport"); } catch {}
+  renderPassport();
+});
+
+// ---------- Diet switches ----------
+
+document.querySelectorAll(".diet").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const d = btn.dataset.diet;
+    if (diets.has(d)) diets.delete(d); else diets.add(d);
+    btn.setAttribute("aria-pressed", String(diets.has(d)));
+    try { localStorage.setItem("carlo-diets", JSON.stringify([...diets])); } catch {}
+  });
+});
+
+// ---------- Recipe cards ----------
+
+const FRACTIONS = { 0.25: "¼", 0.5: "½", 0.75: "¾" };
+
+function formatQty(qty, unit) {
+  if (qty == null) return "";
+  let text;
+  if (/^(g|ml)$/i.test(unit) && qty >= 20) {
+    text = String(Math.round(qty / 5) * 5);
+  } else if (/^(kg|l)$/i.test(unit)) {
+    text = String(Math.round(qty * 100) / 100);
+  } else {
+    const q = Math.max(0.25, Math.round(qty * 4) / 4);
+    const whole = Math.floor(q), frac = FRACTIONS[q - whole] || "";
+    text = (whole ? String(whole) : "") + frac || String(q);
+  }
+  return unit ? `${text} ${unit}` : text;
+}
+
+function shoppingList(recipe, servings) {
+  const f = servings / recipe.servings;
+  const lines = recipe.ingredients.map((i) => {
+    const q = formatQty(i.qty == null ? null : i.qty * f, i.unit);
+    return `- ${q ? q + " " : ""}${i.item}`;
+  });
+  return `Shopping list: ${recipe.title} (serves ${servings})\n${lines.join("\n")}`;
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const t = document.createElement("textarea");
+    t.value = text;
+    document.body.appendChild(t);
+    t.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch {}
+    t.remove();
+    return ok;
+  }
+}
+
+function make(tag, className, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function recipeCard(recipe) {
+  const card = make("article", "recipe");
+  card.appendChild(make("h3", "recipe-title", recipe.title));
+
+  const meta = make("p", "recipe-meta");
+  if (recipe.time) meta.appendChild(make("span", "tag", "⏱ " + recipe.time));
+  if (recipe.difficulty) meta.appendChild(make("span", "tag", recipe.difficulty[0].toUpperCase() + recipe.difficulty.slice(1)));
+  card.appendChild(meta);
+
+  // servings adjuster
+  const serves = make("div", "serves");
+  serves.setAttribute("role", "group");
+  serves.setAttribute("aria-label", "Servings");
+  serves.appendChild(make("span", "serves-label", "Serves"));
+  const options = [...new Set([1, 2, 4, 6, recipe.servings])].sort((a, b) => a - b);
+  const buttons = options.map((n) => {
+    const b = make("button", "serve-btn", String(n));
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(n === recipe.servings));
+    b.addEventListener("click", () => setServings(n));
+    serves.appendChild(b);
+    return b;
+  });
+  card.appendChild(serves);
+
+  // ingredients with tick boxes
+  card.appendChild(make("h4", "recipe-sub", "Ingredients"));
+  const ul = make("ul", "ingredients");
+  const qtySpans = recipe.ingredients.map((ing) => {
+    const li = make("li");
+    const label = make("label");
+    const box = make("input");
+    box.type = "checkbox";
+    const q = make("span", "qty");
+    label.append(box, q, document.createTextNode(ing.item));
+    li.appendChild(label);
+    ul.appendChild(li);
+    return q;
+  });
+  card.appendChild(ul);
+
+  card.appendChild(make("h4", "recipe-sub", "Steps"));
+  const ol = make("ol", "steps");
+  recipe.steps.forEach((step) => ol.appendChild(make("li", null, step)));
+  card.appendChild(ol);
+
+  const copy = make("button", "copy-btn", "Copy shopping list");
+  copy.type = "button";
+  card.appendChild(copy);
+
+  let current = recipe.servings;
+  function setServings(n) {
+    current = n;
+    const f = n / recipe.servings;
+    recipe.ingredients.forEach((ing, i) => {
+      const t = formatQty(ing.qty == null ? null : ing.qty * f, ing.unit);
+      qtySpans[i].textContent = t ? t + " " : "";
+    });
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(Number(b.textContent) === n)));
+  }
+  copy.addEventListener("click", async () => {
+    const ok = await copyText(shoppingList(recipe, current));
+    copy.textContent = ok ? "Shopping list copied" : "Couldn't copy. Select the list by hand.";
+    setTimeout(() => (copy.textContent = "Copy shopping list"), 2200);
+  });
+  setServings(recipe.servings);
+  return card;
+}
+
+// Text version of a recipe, so Carlo remembers it in the next messages.
+function recipeAsText(recipe) {
+  const ing = recipe.ingredients.map((i) => `${formatQty(i.qty, i.unit)} ${i.item}`.trim()).join(", ");
+  return `\n\n[Recipe I gave: ${recipe.title}, serves ${recipe.servings}. Ingredients: ${ing}. Steps: ${recipe.steps.join(" ")}]`;
+}
+
 // ---------- Chat log ----------
 
 function scrollDown() { log.scrollTop = log.scrollHeight; }
@@ -176,47 +358,34 @@ function clearEmpty() { const e = el("empty"); if (e) e.remove(); }
 
 function addUser(text) {
   clearEmpty();
-  const row = document.createElement("div");
-  row.className = "row user";
-  const msg = document.createElement("div");
-  msg.className = "msg";
-  msg.textContent = text;
-  row.appendChild(msg);
+  const row = make("div", "row user");
+  row.appendChild(make("div", "msg", text));
   log.appendChild(row);
   scrollDown();
 }
 
-function addBot(text, { extraClass = "", withStamp = true } = {}) {
+function addBot(text, { extraClass = "", withStamp = true, recipe = null } = {}) {
   clearEmpty();
   const c = CUISINES[cuisine] || NO_CUISINE;
-  const row = document.createElement("div");
-  row.className = "row bot";
-  const badge = document.createElement("span");
-  badge.className = "badge";
+  const row = make("div", "row bot" + (recipe ? " has-recipe" : ""));
+  const badge = make("span", "badge", c.dish);
   badge.setAttribute("aria-hidden", "true");
-  badge.textContent = c.dish;
   badge.style.setProperty("--cuisine-at", c.color);
-  const msg = document.createElement("div");
-  msg.className = `msg ${extraClass}`.trim();
-  msg.textContent = text;
-  if (withStamp) {
-    const stamp = document.createElement("span");
-    stamp.className = "stamp";
-    stamp.textContent = `${moodFor(celsius).name}, ${celsius}°`;
-    msg.appendChild(stamp);
-  }
-  row.append(badge, msg);
+  const stack = make("div", "stack");
+  const msg = make("div", `msg ${extraClass}`.trim(), text);
+  if (withStamp) msg.appendChild(make("span", "stamp-line", `${moodFor(celsius).name}, ${celsius}°`));
+  stack.appendChild(msg);
+  if (recipe) stack.appendChild(recipeCard(recipe));
+  row.append(badge, stack);
   log.appendChild(row);
-  scrollDown();
+  if (recipe) msg.scrollIntoView({ block: "start", behavior: "smooth" });
+  else scrollDown();
   return row;
 }
 
 function addAside(text) {
   if (!log.querySelector(".row")) return; // stay quiet until the chat has started
-  const p = document.createElement("p");
-  p.className = "aside";
-  p.textContent = text;
-  log.appendChild(p);
+  log.appendChild(make("p", "aside", text));
   scrollDown();
 }
 
@@ -247,7 +416,7 @@ async function send(text) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages, celsius }),
+      body: JSON.stringify({ messages, celsius, diet: [...diets] }),
     });
     const data = await res.json().catch(() => ({}));
     typing.remove();
@@ -256,10 +425,11 @@ async function send(text) {
       addBot(data.error || `Something went wrong (status ${res.status}).`, { extraClass: "error", withStamp: false });
       messages.pop(); // let the user retry the same message
     } else {
-      setCuisine(data.cuisine);
       const reply = data.offline ? offlineReply(mood) : data.reply;
-      addBot(reply);
-      messages.push({ role: "assistant", content: reply });
+      setCuisine(data.cuisine);
+      stampPassport(data.cuisine);
+      addBot(reply, { recipe: data.recipe || null });
+      messages.push({ role: "assistant", content: reply + (data.recipe ? recipeAsText(data.recipe) : "") });
     }
   } catch {
     // No server at all, e.g. index.html opened straight from your computer.
@@ -296,4 +466,10 @@ try {
   if (v !== null && Number.isFinite(Number(v))) saved = Number(v);
 } catch {}
 setTemperature(saved, { announce: false });
+try {
+  visited = new Set((JSON.parse(localStorage.getItem("carlo-passport")) || []).filter((id) => CUISINES[id]));
+  diets = new Set(JSON.parse(localStorage.getItem("carlo-diets")) || []);
+} catch {}
+document.querySelectorAll(".diet").forEach((b) => b.setAttribute("aria-pressed", String(diets.has(b.dataset.diet))));
+renderPassport();
 document.body.style.setProperty("--pattern", patternFor("🍳🧄🍅🌿"));

@@ -18,6 +18,14 @@ Carlo's face, colours and steam/sweat/icicles follow his mood. The dish he holds
 and hat band follow the cuisine of the conversation (14 cuisines). The AI tags each reply with its
 cuisine, and the page updates the picture.
 
+## Features
+
+- **Cuisine kitchens:** colours, background pattern, header and greeting change with the cuisine.
+- **Recipe cards:** time and difficulty, ingredients you can tick off, numbered steps, "Copy shopping list".
+- **Servings adjuster:** 1, 2, 4 or 6 people; every quantity recalculates.
+- **Diet switches:** vegetarian, vegan, gluten-free, dairy-free, no pork. Carlo must obey them.
+- **Food passport:** a stamp for each of the 14 cuisines you visit (saved in your browser).
+
 ## Files
 
 ```
