@@ -1,31 +1,38 @@
-/* ---------- Moods: one colour theme each ---------- */
-body[data-mood="frozen"] {
-  --bg: #d3e4ef; --panel: #f5f9fc; --ink: #10283c; --muted: #45617a; --accent: #3e8ed0;
-  --bot: #e3eef6; --halo: #bcd7ea; --skin: #e6d5cf; --cheek: #b9d3e8; --line: #b4cee0;
+/* ---------- Colours ----------
+   The CUISINE sets the page colours (app.js writes these variables when the cuisine changes).
+   The MOOD sets Carlo's face, his halo and the glow around the screen edges. */
+:root {
+  --bg: #e4ecdc; --panel: #fbfdf8; --ink: #1f2d1c; --muted: #55634e; --accent: #3d8538;
+  --bot: #eaf2e2; --line: #c8d8bb; --user: #1f2d1c; --cuisine: #3d8538;
 }
-body[data-mood="chilly"] {
-  --bg: #dce3e6; --panel: #f8fafa; --ink: #1d2e38; --muted: #516672; --accent: #5a8294;
-  --bot: #e8eef0; --halo: #c9d6dc; --skin: #efcdb2; --cheek: #e5b9a4; --line: #c3d0d6;
+body[data-mood="frozen"]   { --halo: #bcd7ea; --skin: #e6d5cf; --cheek: #b9d3e8; }
+body[data-mood="chilly"]   { --halo: #c9d6dc; --skin: #efcdb2; --cheek: #e5b9a4; }
+body[data-mood="happy"]    { --halo: #cde1bf; --skin: #f2c9a0; --cheek: #f0a58f; }
+body[data-mood="fired-up"] { --halo: #ffbf78; --skin: #f5b98f; --cheek: #ec6f4f; }
+body[data-mood="meltdown"] { --halo: #ff8a4c; --skin: #f0a47e; --cheek: #e2482a; }
+
+/* mood glow around the edges of the screen */
+.mood-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: box-shadow 0.8s ease;
 }
-body[data-mood="happy"] {
-  --bg: #e1ecd6; --panel: #fbfdf8; --ink: #1f2d1c; --muted: #55634e; --accent: #3d8538;
-  --bot: #eaf2e2; --halo: #cde1bf; --skin: #f2c9a0; --cheek: #f0a58f; --line: #c8d8bb;
-}
-body[data-mood="fired-up"] {
-  --bg: #ffd6a5; --panel: #fff6ea; --ink: #45190a; --muted: #7c4226; --accent: #d8431b;
-  --bot: #ffe5c6; --halo: #ffbf78; --skin: #f5b98f; --cheek: #ec6f4f; --line: #f2b87a;
-}
-body[data-mood="meltdown"] {
-  --bg: #24100a; --panel: #361409; --ink: #ffe9d6; --muted: #f2a983; --accent: #ff6b1a;
-  --bot: #52200f; --halo: #6b2410; --skin: #f0a47e; --cheek: #e2482a; --line: #6e2a16;
-}
+.app { position: relative; z-index: 1; }
+body[data-mood="frozen"] .mood-glow   { box-shadow: inset 0 0 7rem 1.5rem rgba(160, 210, 245, 0.9); }
+body[data-mood="chilly"] .mood-glow   { box-shadow: inset 0 0 6rem 0.5rem rgba(120, 145, 160, 0.45); }
+body[data-mood="fired-up"] .mood-glow { box-shadow: inset 0 0 7rem 1rem rgba(255, 140, 40, 0.5); }
+body[data-mood="meltdown"] .mood-glow { box-shadow: inset 0 0 9rem 2.5rem rgba(210, 45, 10, 0.7); }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--pattern, none);
+  background-size: 15rem 15rem;
   color: var(--ink);
   font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
   font-size: 1rem;
@@ -95,6 +102,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .hat { transform-origin: 100px 60px; transition: transform 0.5s ease; }
 body[data-mood="meltdown"] .hat { transform: rotate(-9deg) translateY(-4px); }
 body[data-mood="frozen"] .jacket { fill: #f1f8fd; }
+body[data-mood="meltdown"] .halo { fill: #5a1a0a; }
 
 /* show only the current mood's face */
 .m { display: none; }
@@ -195,6 +203,36 @@ input[type="range"]::-moz-range-thumb {
   transition: background-color 0.6s ease, box-shadow 0.6s ease;
 }
 
+/* chat header: which kitchen we are in */
+.chat-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--accent);
+  color: #ffffff;
+  transition-property: background-color;
+}
+.chat-head p { margin: 0; }
+.head-dish {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ffffff;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.head-title {
+  font-family: "Lilita One", system-ui, sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+.head-greet { font-style: italic; opacity: 0.9; }
+
 .log {
   flex: 1;
   min-height: 0;
@@ -247,8 +285,8 @@ input[type="range"]::-moz-range-thumb {
   transition: background-color 0.6s ease, color 0.6s ease;
 }
 .row.user .msg {
-  background: var(--ink);
-  color: var(--panel);
+  background: var(--user);
+  color: #ffffff;
   border-bottom-right-radius: 0.35rem;
 }
 .row.bot .msg {
@@ -304,6 +342,8 @@ input[type="range"]::-moz-range-thumb {
   body[data-mood="meltdown"] .steam path:nth-child(2) { animation-delay: 0.3s; }
   body[data-mood="meltdown"] .steam path:nth-child(3) { animation-delay: 0.6s; }
   body[data-mood="fired-up"] .chef, body[data-mood="meltdown"] .chef { animation: bounce 0.9s ease-in-out infinite; }
+  body[data-mood="meltdown"] .mood-glow { animation: ember 1.8s ease-in-out infinite; }
+  .chat-head.swap { animation: serve 0.5s ease; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
@@ -315,6 +355,10 @@ input[type="range"]::-moz-range-thumb {
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
+}
+@keyframes ember {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
 }
 @keyframes serve {
   0% { transform: scale(0.6) rotate(-20deg); }

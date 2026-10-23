@@ -109,6 +109,13 @@
     </aside>
 
     <main class="chat" aria-label="Chat with Chef Carlo">
+      <header id="chatHead" class="chat-head">
+        <span id="headDish" class="head-dish" aria-hidden="true">🍳</span>
+        <div>
+          <p id="headTitle" class="head-title">Carlo's kitchen</p>
+          <p id="headGreet" class="head-greet">Name a cuisine and the kitchen changes with it.</p>
+        </div>
+      </header>
       <div id="log" class="log" aria-live="polite">
         <div id="empty" class="empty">
           <p class="empty-title">What are we cooking today?</p>
@@ -131,6 +138,7 @@
     </main>
   </div>
 
+  <div class="mood-glow" aria-hidden="true"></div>
   <script src="app.js"></script>
 </body>
 </html>

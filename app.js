@@ -54,23 +54,39 @@ const MOODS = [
   },
 ];
 
+// Each cuisine re-themes the whole page: colours, background pattern, header and greeting.
+// theme: [background, panel, text, muted text, accent, Carlo's bubble, borders, your bubble]
 const CUISINES = {
-  italian:            { name: "Italian",          dish: "🍝", color: "#3f8a3a" },
-  french:             { name: "French",           dish: "🥐", color: "#2f5fb3" },
-  spanish:            { name: "Spanish",          dish: "🥘", color: "#e0a321" },
-  greek:              { name: "Greek",            dish: "🫒", color: "#2d79c7" },
-  austrian:           { name: "Austrian",         dish: "🥨", color: "#c8322b" },
-  "eastern-european": { name: "Eastern European", dish: "🍲", color: "#b0322f" },
-  "middle-eastern":   { name: "Middle Eastern",   dish: "🧆", color: "#a8741a" },
-  thai:               { name: "Thai",             dish: "🥥", color: "#5b3fa0" },
-  indian:             { name: "Indian",           dish: "🍛", color: "#e2861d" },
-  chinese:            { name: "Chinese",          dish: "🥟", color: "#d22f27" },
-  japanese:           { name: "Japanese",         dish: "🍣", color: "#c9384b" },
-  korean:             { name: "Korean",           dish: "🍜", color: "#2f4aa0" },
-  mexican:            { name: "Mexican",          dish: "🌮", color: "#1f8a4c" },
-  american:           { name: "American",         dish: "🍔", color: "#b33a3a" },
+  italian: { name: "Italian", dish: "🍝", color: "#3f8a3a", greet: "Buon appetito!", pattern: "🍅🌿🍝🧀",
+    theme: ["#f5e4e0", "#fffaf8", "#2a1512", "#7a4a42", "#b8322a", "#fbe9e5", "#ecc8c1", "#2f5d2a"] },
+  french: { name: "French", dish: "🥐", color: "#2f5fb3", greet: "Bon appétit !", pattern: "🥐🧀🍷🥖",
+    theme: ["#e3e7f3", "#fbfbfe", "#161d3a", "#4b557c", "#2c3e8f", "#eceff8", "#c9d0e6", "#161d3a"] },
+  spanish: { name: "Spanish", dish: "🥘", color: "#e0a321", greet: "¡Que aproveche!", pattern: "🥘🫒🍤🍊",
+    theme: ["#f8e6c4", "#fffaf0", "#3a1d06", "#7d5320", "#c0391b", "#fcefd6", "#edd3a1", "#8a2a10"] },
+  greek: { name: "Greek", dish: "🫒", color: "#2d79c7", greet: "Kalí órexi!", pattern: "🫒🍋🐟🍅",
+    theme: ["#dcebf6", "#fbfdff", "#0d2a44", "#44627e", "#1f6fb5", "#e7f1fa", "#c0d8ec", "#0d2a44"] },
+  austrian: { name: "Austrian", dish: "🥨", color: "#c8322b", greet: "Mahlzeit!", pattern: "🥨🍰☕🍎",
+    theme: ["#f6e1cf", "#fffaf5", "#33190e", "#7a4c34", "#a2302a", "#fbece0", "#ebcbb2", "#2f4a2c"] },
+  "eastern-european": { name: "Eastern European", dish: "🍲", color: "#b0322f", greet: "Smachnoho!", pattern: "🍲🥟🥔🌿",
+    theme: ["#f1dde3", "#fffafb", "#2e1020", "#74445a", "#8e1f4a", "#f8e8ee", "#e6c4d1", "#3c5a2a"] },
+  "middle-eastern": { name: "Middle Eastern", dish: "🧆", color: "#a8741a", greet: "Sahtein!", pattern: "🧆🍋🫓🍆",
+    theme: ["#f1e4d1", "#fffbf5", "#2f1d10", "#765738", "#a23a2c", "#f8eee0", "#e5d0b3", "#4c3a1a"] },
+  thai: { name: "Thai", dish: "🥥", color: "#5b3fa0", greet: "Kin khao reu yang?", pattern: "🥥🌶️🍤🍋",
+    theme: ["#e4f0d6", "#fbfef6", "#1c2c12", "#50663f", "#4f7d1a", "#edf5e2", "#cde0b6", "#5b3fa0"] },
+  indian: { name: "Indian", dish: "🍛", color: "#e2861d", greet: "Shubh bhojan!", pattern: "🍛🫓🌶️🧄",
+    theme: ["#fbe4c2", "#fffaf0", "#3b1f05", "#80531d", "#b5520e", "#fdeed6", "#f0d09f", "#2e6b3a"] },
+  chinese: { name: "Chinese", dish: "🥟", color: "#d22f27", greet: "Màn màn chī!", pattern: "🥟🥢🍜🥠",
+    theme: ["#f6dcd6", "#fffafa", "#331010", "#7d4038", "#b71f1f", "#fbe8e4", "#edc3bc", "#1f5f4a"] },
+  japanese: { name: "Japanese", dish: "🍣", color: "#c9384b", greet: "Itadakimasu!", pattern: "🍣🍙🥢🍵",
+    theme: ["#f4e4e8", "#fffbfc", "#1c1a2e", "#5d5770", "#2b3a78", "#f9ecef", "#e7cfd6", "#2b3a78"] },
+  korean: { name: "Korean", dish: "🍜", color: "#2f4aa0", greet: "Jal meokgesseumnida!", pattern: "🍜🍚🌶️🥬",
+    theme: ["#f2e0d8", "#fffaf8", "#2a1410", "#6e463c", "#b5321f", "#f9eae4", "#e9c9bd", "#2f4aa0"] },
+  mexican: { name: "Mexican", dish: "🌮", color: "#1f8a4c", greet: "¡Buen provecho!", pattern: "🌮🌶️🥑🌽",
+    theme: ["#fde9c8", "#fffaf0", "#2e1a08", "#7a5324", "#1f7a44", "#fdf0d9", "#f0d4a0", "#b5321f"] },
+  american: { name: "American", dish: "🍔", color: "#b33a3a", greet: "Dig in!", pattern: "🍔🍟🥤🥧",
+    theme: ["#dff0ea", "#fbfefd", "#1a1f2b", "#4d5866", "#c8302f", "#eaf6f1", "#c4e2d6", "#1a1f2b"] },
 };
-const NO_CUISINE = { name: "anything you like", dish: "🍳", color: "#d8d8d8" };
+const NO_CUISINE = { name: "anything you like", dish: "🍳", color: "#3d8538" };
 
 const MIN_C = -20, MAX_C = 50;
 const el = (id) => document.getElementById(id);
@@ -115,21 +131,41 @@ function setTemperature(c, { announce = true } = {}) {
 
 slider.addEventListener("input", () => setTemperature(Number(slider.value)));
 
-// ---------- Cuisine → plate, scarf and hat band ----------
+// ---------- Cuisine → whole interface ----------
+
+const THEME_VARS = ["--bg", "--panel", "--ink", "--muted", "--accent", "--bot", "--line", "--user"];
+
+// A tile of faint dish emojis for the page background.
+function patternFor(emojis) {
+  const list = Array.from(emojis.matchAll(/\p{Extended_Pictographic}\uFE0F?/gu), (m) => m[0]);
+  const spots = [[30, 50, -12], [150, 40, 10], [90, 130, 6], [200, 170, -8], [40, 210, 14], [140, 225, -4]];
+  const texts = spots
+    .map(([x, y, r], i) => `<text x="${x}" y="${y}" font-size="34" opacity="0.16" transform="rotate(${r} ${x} ${y})">${list[i % list.length]}</text>`)
+    .join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">${texts}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
 
 function setCuisine(id) {
-  if (!id || id === "none" || !CUISINES[id]) return;
-  const changed = id !== cuisine;
+  if (!id || id === "none" || !CUISINES[id] || id === cuisine) return;
   cuisine = id;
   const c = CUISINES[id];
-  document.body.style.setProperty("--cuisine", c.color);
+  const body = document.body;
+  body.dataset.cuisine = id;
+  THEME_VARS.forEach((v, i) => body.style.setProperty(v, c.theme[i]));
+  body.style.setProperty("--cuisine", c.color);
+  body.style.setProperty("--pattern", patternFor(c.pattern));
+
   el("plate").textContent = c.dish;
   el("cuisineName").textContent = c.name;
-  if (changed) {
-    const plate = el("plate");
-    plate.classList.remove("serve");
-    void plate.offsetWidth; // restart the animation
-    plate.classList.add("serve");
+  el("headDish").textContent = c.dish;
+  el("headTitle").textContent = `${c.name} kitchen`;
+  el("headGreet").textContent = c.greet;
+
+  for (const node of [el("plate"), el("chatHead")]) {
+    node.classList.remove("serve", "swap");
+    void node.offsetWidth; // restart the animation
+    node.classList.add(node.id === "plate" ? "serve" : "swap");
   }
 }
 
@@ -260,3 +296,4 @@ try {
   if (v !== null && Number.isFinite(Number(v))) saved = Number(v);
 } catch {}
 setTemperature(saved, { announce: false });
+document.body.style.setProperty("--pattern", patternFor("🍳🧄🍅🌿"));
